@@ -167,9 +167,17 @@ contract ERC721Token is ERC721 {
         symbol = _symbol;
         tokenURIBase = _tokenURIBase;
     }
+    
+    modifier canTransfer(uint _tokenId) {
+        address owner = idToOwner[_tokenId];
+        require(owner == msg.sender 
+            || idToApproved[_tokenId] == msg.sender
+            || ownerToOperators[owner][msg.sender] == true, 'Transfer not authorized');
+        _;
+    }
 
     function tokenURI(uint _tokenId) external view returns(string memory) {
-      return string(abi.encodePacked(tokenURIBase, _tokenId));
+        return string(abi.encodePacked(tokenURIBase, _tokenId));
     }
     
     function balanceOf(address _owner) external view returns(uint) {
@@ -213,7 +221,7 @@ contract ERC721Token is ERC721 {
     }
     
     function _safeTransferFrom(address _from, address _to, uint _tokenId, bytes memory data) internal {
-       _transfer(_from, _to, _tokenId);
+        _transfer(_from, _to, _tokenId);
         
         if(_to.isContract()) {
             bytes4 retval = ERC721TokenReceiver(_to).onERC721Received(msg.sender, _from, _tokenId, data);
@@ -222,8 +230,8 @@ contract ERC721Token is ERC721 {
     }
     
     function _transfer(address _from, address _to, uint _tokenId) 
-        internal 
-        canTransfer(_tokenId) {
+      internal 
+      canTransfer(_tokenId) {
         ownerToTokenCount[_from] -= 1; 
         ownerToTokenCount[_to] += 1;
         idToOwner[_tokenId] = _to;
@@ -237,11 +245,4 @@ contract ERC721Token is ERC721 {
         emit Transfer(address(0), _owner, _tokenId);
     }
     
-    modifier canTransfer(uint _tokenId) {
-        address owner = idToOwner[_tokenId];
-        require(owner == msg.sender 
-            || idToApproved[_tokenId] == msg.sender
-            || ownerToOperators[owner][msg.sender] == true, 'Transfer not authorized');
-        _;
-    }
 }
